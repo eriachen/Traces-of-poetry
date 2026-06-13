@@ -2,8 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import authRoute from './routes/auth';
 import poemsRoute from './routes/poems';
 import classesRoute from './routes/classes';
@@ -12,7 +10,6 @@ import essayTasksRoute from './routes/essay-tasks';
 import essaysRoute from './routes/essays';
 import annotationsRoute from './routes/annotations';
 
-const execAsync = promisify(exec);
 dotenv.config();
 
 const app = express();
@@ -34,22 +31,10 @@ app.use('/api/essay-tasks', essayTasksRoute);
 app.use('/api/essays', essaysRoute);
 app.use('/api/annotations', annotationsRoute);
 
-async function initializeDatabase() {
-  try {
-    console.log('Initializing database...');
-    await execAsync('npx prisma db push');
-    console.log('Database schema pushed successfully');
-  } catch (error) {
-    console.log('Database initialized or already exists');
-  }
-}
-
 async function main() {
   try {
     await prisma.$connect();
     console.log('Database connected successfully');
-    
-    await initializeDatabase();
     
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
