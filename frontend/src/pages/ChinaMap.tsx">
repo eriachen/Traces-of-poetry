@@ -1,0 +1,261 @@
+import React, { useState, useRef, useMemo } from 'react';
+import chinaGeoJSON from './china.json';
+
+interface ProvinceData {
+  name: string;
+  count: number;
+  cp: [number, number];
+}
+
+const demoBubbleData: ProvinceData[] = [
+  { name: '陕西省', count: 8, cp: [106.6113, 35.9277] },
+  { name: '四川省', count: 12, cp: [101.9199, 30.1904] },
+  { name: '江苏省', count: 15, cp: [117.2461, 32.0361] },
+  { name: '山东省', count: 6, cp: [118.7402, 36.4307] },
+  { name: '浙江省', count: 9, cp: [120.498, 29.0918] },
+  { name: '湖北省', count: 5, cp: [112.2363, 31.1572] },
+];
+
+// 坐标转换函数，将经纬度转换为SVG坐标
+const project = (lng: number, lat: number, width: number, height: number) => {
+  // 简单的投影变换，调整到合适的SVG视图
+  const x = (lng - 75) * (width / 65;
+  const y = (55 - lat) * (height / 55);
+  return [x, y];
+};
+
+export default function ChinaMap() {
+  const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
+  const [hoveredProvince, setHoveredProvince] = useState<string | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+
+  const svgRef = useRef<SVGSVGElement>(null);
+  const width = 1000;
+  const height = 900;
+
+  // 鼠标移动处理
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (svgRef.current) {
+      const rect = svgRef.current.getBoundingClientRect();
+      const scaleX = width / rect.width;
+      const scaleY = height / rect.height;
+      setTooltipPosition({
+        x: (e.clientX - rect.left) * scaleX + 15,
+        y: (e.clientY - rect.top) * scaleY + 15
+      });
+    }
+  };
+
+  // 处理省份点击
+  const handleProvinceClick = (name: string) => {
+    if (selectedProvince === name) {
+      setSelectedProvince(null);
+    } else {
+      setSelectedProvince(name);
+    }
+  };
+
+  // 省份渲染
+  const renderProvinces = () => {
+    return chinaGeoJSON.features.map((feature, index) => {
+      const name = feature.properties.name;
+      const isSelected = selectedProvince === name;
+      const isHovered = hoveredProvince === name;
+      
+      let fillColor = '#B8B0A0';
+      if (isSelected) {
+        fillColor = '#8C5E38';
+      } else if (isHovered) {
+        fillColor = '#C4A067';
+      }
+
+      // 处理不同的几何类型
+      const renderGeometry = (coordinates: any, type: string) => {
+        if (type === 'Polygon') {
+          return renderPolygon(coordinates);
+        } else if (type === 'MultiPolygon') {
+            return coordinates.map((poly: any, i: number) => {
+                return (
+                    <g key={i}>
+                    {renderPolygon(poly)}
+                    </g>
+                );
+            });
+        }
+      };
+
+      const renderPolygon = (coordinates: any) => {
+        let pathD = '';
+        coordinates.forEach((ring: any, ringIndex: number) => {
+            ring.forEach((point: [number, number], pointIndex: number) => {
+            const [x, y] = project(point[0], point[1], width, height);
+            if (pointIndex === 0) {
+                pathD += `M ${x} ${y}`;
+            } else {
+                pathD += ` L ${x} ${y}`;
+            }
+          });
+        });
+
+        return (
+          <path
+            key={`path-${name}-${index}`}
+            d={pathD}
+            fill={fillColor}
+            stroke="#FAF5EA"
+            strokeWidth="1.2"
+            cursor="pointer"
+            onMouseEnter={() => setHoveredProvince(name)}
+            onMouseLeave={() => setHoveredProvince(null)}
+            onClick={() => handleProvinceClick(name)}
+            data-name={name}
+          />
+        );
+      };
+
+      return <g key={`g-${name}>{renderGeometry(feature.geometry.coordinates, feature.geometry.type)}</g>;
+    });
+  };
+
+  // 气泡渲染
+  const renderBubbles = () => {
+    return demoBubbleData.map((province, index) => {
+      const [lng = province.cp;
+      const [x, y] = project(lng[0], lng[1], width, height);
+      const radius = province.count * 1.8 + 8;
+      
+      return (
+        <g key={`bubble-${province.name}`} style={{ pointerEvents: 'none' }}>
+          <circle
+            cx={x}
+            cy={y}
+            r={radius}
+            fill="#8C5E38"
+            opacity="0.75"
+          />
+          <text
+            x={x}
+            y={y + 4}
+            textAnchor="middle"
+            fill="#FAF5EA"
+            fontSize="11"
+            fontFamily="Arial, sans-serif"
+          >
+            {province.count}
+          </text>
+        </g>
+      );
+    });
+  };
+
+  // 获取选中省份的诗词数量
+  const getRandomPoemCount = () => {
+    if (!selectedProvince) return 0;
+    return Math.floor(Math.random() * 20) + 1;
+  };
+
+  return (
+    <div className="w-full h-[calc(100vh-4rem)] relative" style={{ backgroundColor: '#EDE8DF' }}>
+      {/* 左上角标题卡片 */}
+      <div 
+        className="absolute top-5 left-5 bg-white rounded-2xl p-6 shadow-md z-20" 
+        style={{ borderRadius: '16px', padding: '20px 24px' }}
+      >
+        <h1 className="text-2xl font-bold" style={{ 
+          fontSize: '28px', 
+          fontWeight: '500', 
+          color: '#2A1E14',
+          fontFamily: "'Noto Serif SC', 'Songti SC', SimSun, serif"
+        }}>
+          诗迹
+        </h1>
+        <p className="mt-2" style={{ 
+          fontSize: '11px', 
+          letterSpacing: '0.3em', 
+          color: '#8C7B6B' 
+        }}>
+          SHIJI · POETRY MAP
+        </p>
+        <p className="mt-2" style={{ 
+          fontSize: '13px', 
+          color: '#6B5744',
+          fontStyle: 'italic'
+        }}>
+          让文学从真空中落地
+        </p>
+      </div>
+
+      {/* SVG 地图 */}
+      <svg
+        ref={svgRef}
+        width="100%"
+        height="100%"
+        viewBox={`0 0 ${width} ${height}"
+        onMouseMove={handleMouseMove}
+        style={{ backgroundColor: '#EDE8DF' }}
+        preserveAspectRatio="xMidYMid meet"
+      >
+        {renderProvinces()}
+        {renderBubbles()}
+
+        {/* Tooltip */}
+        {hoveredProvince && (
+          <g transform={`translate(${Math.min(width - 100, tooltipPosition.x)}, ${Math.min(height - 50, tooltipPosition.y)})`}>
+            <rect
+              x="0" y="0"
+              width="80" height="32"
+              rx="6"
+              fill="rgba(42, 30, 20, 0.9)"
+            />
+            <text
+              x="40" y="20"
+              textAnchor="middle"
+              fill="#FAF5EA"
+              fontSize="14"
+              fontFamily="'Noto Serif SC', serif"
+            >
+              {hoveredProvince}
+            </text>
+          </g>
+        )}
+      </svg>
+
+      {/* 右侧省份信息面板 */}
+      {selectedProvince && (
+        <div 
+          className="absolute top-0 right-0 w-80 h-full bg-white border-l border-opacity-20 border-brown-800 shadow-lg z-10 overflow-y-auto" 
+          style={{ borderLeftColor: '#8C5E38' }}
+        >
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 
+                className="text-2xl font-bold"
+                style={{ color: '#2A1E14', fontFamily: "'Noto Serif SC', serif }}
+              >
+                {selectedProvince}
+              </h2>
+              <button 
+                onClick={() => setSelectedProvince(null)}
+                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="py-4">
+              <div style={{ color: '#6B5744', fontSize: '18px' }}>
+                共收录 
+                <span style={{ color: '#8C5E38', fontSize: '32px', fontWeight: 'bold' }}>
+                  {getRandomPoemCount()}
+                </span>
+                首诗词
+              </div>
+              <p className="mt-4" style={{ color: '#6B5744', lineHeight: '1.8', fontSize: '14px' }}>
+                点击查看该地区的诗词详情，探索文人墨客的足迹和故事。
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

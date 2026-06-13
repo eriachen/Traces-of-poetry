@@ -1,0 +1,313 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  phone     String?  @unique
+  password  String
+  name      String
+  role      String // "STUDENT" or "TEACHER"
+  school    String?
+  grade     String?
+  subject   String?
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  classMemberships ClassMember[]
+  annotations       Annotation[]
+  essays            Essay[]
+  imitations        Imitation[]
+  createdClasses    Class[] @relation("TeacherClasses")
+  createdEssayTasks EssayTask[] @relation("TeacherEssayTasks")
+  studyProgress     StudyProgress[]
+  practiceResults   PracticeResult[]
+  poemConnections   PoemConnection[]
+  comments          Comment[]
+  
+  @@map("users")
+}
+
+model Class {
+  id          String        @id @default(uuid())
+  name        String
+  inviteCode  String        @unique
+  teacherId   String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  
+  teacher     User          @relation("TeacherClasses", fields: [teacherId], references: [id], onDelete: Cascade)
+  members     ClassMember[]
+  poems       Poem[]
+  tasks       Task[]
+  essayTasks  EssayTask[]
+  essayShares EssayShare[]
+  imitations  Imitation[]
+  poemConnections PoemConnection[]
+  
+  @@map("classes")
+}
+
+model ClassMember {
+  id        String   @id @default(uuid())
+  userId    String
+  classId   String
+  joinedAt  DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, classId])
+  @@map("class_members")
+}
+
+model Poem {
+  id                String            @id @default(uuid())
+  title             String
+  author            String
+  dynasty           String
+  content           String
+  authorBio         String?
+  createdYear       String?
+  background        String?
+  locationAncient   String?
+  locationModern    String?
+  locationLat       Float?
+  locationLng       Float?
+  builtinAnnotations String? // JSON string of annotations
+  tags              String? // JSON string of tags array
+  imageryTags       String? // JSON string of imagery tags array
+  emotionTags       String? // JSON string of emotion tags array
+  source            String // "INTERNAL" or "USER"
+  classId           String?
+  createdBy         String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  
+  class             Class?            @relation(fields: [classId], references: [id])
+  studyProgress     StudyProgress[]
+  userAnnotations   Annotation[]      @relation("PoemAnnotations")
+  poemConnectionsA  PoemConnection[]  @relation("ConnectionA")
+  poemConnectionsB  PoemConnection[]  @relation("ConnectionB")
+  imitations        Imitation[]
+  citedPoems        CitedPoem[]
+  questions         Question[]
+  
+  @@map("poems")
+}
+
+model Annotation {
+  id        String   @id @default(uuid())
+  poemId    String
+  userId    String
+  startPos  Int
+  endPos    Int
+  content   String
+  isPublic  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  poem      Poem     @relation("PoemAnnotations", fields: [poemId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("annotations")
+}
+
+model Essay {
+  id        String   @id @default(uuid())
+  title     String
+  content   String
+  userId    String
+  isDraft   Boolean  @default(true)
+  visibility String  @default("PRIVATE") // PRIVATE, CLASS, PUBLIC
+  type      String   @default("GENERAL") // GENERAL, TASK_SUBMISSION, RESEARCH, REFLECTION
+  taskId    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task      EssayTask? @relation(fields: [taskId], references: [id])
+  shares    EssayShare[]
+  citedPoems CitedPoem[]
+  comments  Comment[]
+  
+  @@map("essays")
+}
+
+model EssayTask {
+  id          String   @id @default(uuid())
+  classId     String
+  teacherId   String
+  title       String
+  description String?
+  content     String? // 主题内容
+  dueDate     DateTime?
+  isClosed    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacher     User     @relation("TeacherEssayTasks", fields: [teacherId], references: [id], onDelete: Cascade)
+  submissions Essay[]
+  
+  @@map("essay_tasks")
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  essayId   String
+  authorId  String
+  content   String
+  isTeacher Boolean  @default(false)
+  isStarred Boolean  @default(false) // 加精
+  visibility String  @default("AUTHOR") // AUTHOR, CLASS, PUBLIC
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  essay     Essay    @relation(fields: [essayId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  
+  @@map("comments")
+}
+
+model CitedPoem {
+  id      String @id @default(uuid())
+  essayId String
+  poemId  String
+  quote   String?
+  
+  essay   Essay  @relation(fields: [essayId], references: [id], onDelete: Cascade)
+  poem    Poem   @relation(fields: [poemId], references: [id], onDelete: Cascade)
+  
+  @@map("cited_poems")
+}
+
+model EssayShare {
+  id        String   @id @default(uuid())
+  essayId   String
+  classId   String
+  sharedAt  DateTime @default(now())
+  
+  essay     Essay    @relation(fields: [essayId], references: [id], onDelete: Cascade)
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  
+  @@map("essay_shares")
+}
+
+model Imitation {
+  id         String   @id @default(uuid())
+  poemId     String
+  userId     String
+  classId    String?
+  content    String
+  teacherNote String?
+  isStarred  Boolean  @default(false)
+  isShared   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  poem       Poem     @relation(fields: [poemId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  class      Class?   @relation(fields: [classId], references: [id])
+  
+  @@map("imitations")
+}
+
+model PoemConnection {
+  id           String   @id @default(uuid())
+  poemIdA      String
+  poemIdB      String
+  relationNote String
+  createdBy    String
+  classId      String
+  createdAt    DateTime @default(now())
+  
+  poemA        Poem     @relation("ConnectionA", fields: [poemIdA], references: [id], onDelete: Cascade)
+  poemB        Poem     @relation("ConnectionB", fields: [poemIdB], references: [id], onDelete: Cascade)
+  createdByUser User    @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  class        Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  
+  @@map("poem_connections")
+}
+
+model StudyProgress {
+  id        String   @id @default(uuid())
+  userId    String
+  poemId    String
+  status    String   @default("NOT_STARTED") // NOT_STARTED, IN_PROGRESS, MASTERED
+  isStarred Boolean  @default(false)
+  note      String?
+  updatedAt DateTime @updatedAt
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  poem      Poem     @relation(fields: [poemId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, poemId])
+  @@map("study_progress")
+}
+
+model Question {
+  id          String        @id @default(uuid())
+  poemId      String
+  type        String // "FILL_BLANK", "FULL_MERIT", "WORD_CHOICE", "EMOTION_JUDGE"
+  question    String
+  answer      String
+  options     String? // JSON string
+  explanation String?
+  difficulty  String    @default("MEDIUM")
+  createdAt   DateTime  @default(now())
+  
+  poem        Poem      @relation(fields: [poemId], references: [id], onDelete: Cascade)
+  taskItems   TaskItem[]
+  practiceResults PracticeResult[]
+  
+  @@map("questions")
+}
+
+model Task {
+  id          String     @id @default(uuid())
+  classId     String
+  title       String
+  description String?
+  dueDate     DateTime?
+  createdAt   DateTime   @default(now())
+  
+  class       Class      @relation(fields: [classId], references: [id], onDelete: Cascade)
+  items       TaskItem[]
+  
+  @@map("tasks")
+}
+
+model TaskItem {
+  id         String   @id @default(uuid())
+  taskId     String
+  questionId String
+  order      Int
+  createdAt  DateTime @default(now())
+  
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  
+  @@map("task_items")
+}
+
+model PracticeResult {
+  id         String   @id @default(uuid())
+  userId     String
+  questionId String
+  userAnswer String
+  isCorrect  Boolean
+  practiceAt DateTime @default(now())
+  
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  
+  @@map("practice_results")
+}

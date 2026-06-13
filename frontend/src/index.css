@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 诗迹自定义样式 */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Noto Serif SC', 'Songti SC', 'SimSun', Georgia, serif;
+  background-color: #FAF5EA;
+  min-height: 100vh;
+  background-image: 
+    radial-gradient(circle at 15% 20%, rgba(196, 160, 103, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 85% 80%, rgba(140, 94, 56, 0.06) 0%, transparent 50%);
+}
+
+/* 诗词正文专用样式 */
+.poetry-text {
+  font-family: 'Noto Serif SC', 'Songti SC', 'SimSun', Georgia, serif;
+  font-size: 1.125rem;
+  line-height: 1.9;
+  letter-spacing: 0.04em;
+  color: #2A1E14;
+}
+
+/* 卷轴卡片样式 */
+.scroll-card {
+  background-color: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(214, 196, 160, 0.3);
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 20px rgba(74, 55, 40, 0.1);
+}
+
+/* 按钮样式 */
+.btn-poetry {
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.3s;
+  border: 2px solid #8C5E38;
+  background-color: #8C5E38;
+  color: white;
+  cursor: pointer;
+}
+
+.btn-poetry:hover {
+  opacity: 0.9;
+}
+
+.btn-outline {
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.3s;
+  border: 2px solid #8C5E38;
+  color: #8C5E38;
+  background-color: transparent;
+  cursor: pointer;
+}
+
+.btn-outline:hover {
+  background-color: #8C5E38;
+  color: white;
+}
+
+.btn-ghost {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.3s;
+  color: #8C5E38;
+  cursor: pointer;
+}
+
+.btn-ghost:hover {
+  background-color: rgba(140, 94, 56, 0.1);
+}
+
+/* 输入框样式 */
+.input-poetry {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background-color: #EDE3D0;
+  border: 1px solid rgba(214, 196, 160, 0.4);
+  border-radius: 0.5rem;
+  color: #2A1E14;
+  transition: all 0.3s;
+}
+
+.input-poetry:focus {
+  outline: none;
+  border-color: #C4A067;
+  box-shadow: 0 0 0 2px rgba(196, 160, 103, 0.2);
+}
+
+.input-poetry::placeholder {
+  color: rgba(74, 55, 40, 0.4);
+}
+
+/* 分隔线 */
+.divider-poetry {
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(214, 196, 160, 0.4), transparent);
+}
